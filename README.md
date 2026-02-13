@@ -36,6 +36,4 @@
 
 ## 🚀 Как запустить
 
-1. Склонируйте репозиторий:
-   ```bash
-   git clone https://github.com/Kyklina-Irina/bubbles-page.git
+- https://kyklina-irina.github.io/bubbles-page/
