@@ -2,12 +2,12 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Лопающиеся Пузырьки</title>
+    <title>Неоновые Лопающиеся Пузырьки</title>
     <style>
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #1a001a; /* Темно-фиолетовый фон */
+            background-color: #0a0a0a; /* Почти черный фон */
         }
         canvas {
             display: block;
@@ -18,10 +18,10 @@
             width: 100%;
             text-align: center;
             font-family: Arial, sans-serif;
-            color: #ff6ec7; /* Неоново-розовый текст */
+            color: #ff00ff; /* Неоново-розовый текст */
             font-size: 18px;
             pointer-events: none;
-            text-shadow: 0 0 5px rgba(255, 110, 199, 0.7); /* Легкое свечение */
+            text-shadow: 0 0 8px #ff00ff, 0 0 15px #ff00ff; /* Яркое неоновое свечение */
         }
     </style>
 </head>
@@ -54,34 +54,62 @@
             constructor() {
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
-                this.radius = Math.random() * 15 + 5;
-                this.color = `hsla(${Math.random() * 360}, 100%, 75%, 0.7)`; // Яркие цвета с прозрачностью
-                this.dx = (Math.random() - 0.5) * 1.5;
-                this.dy = (Math.random() - 0.5) * 1.5;
-                this.popped = false; // Состояние "лопнул"
+                this.radius = Math.random() * 18 + 6;
+                // Неоновые цвета: розовый, фиолетовый, салатовый
+                const neonColors = ['#ff00ff', '#cc00ff', '#39FF14']; 
+                this.color = neonColors[Math.floor(Math.random() * neonColors.length)];
+                this.dx = (Math.random() - 0.5) * 1.2;
+                this.dy = (Math.random() - 0.5) * 1.2;
+                this.popped = false;
                 this.popRadius = 0;
-                this.maxPopRadius = this.radius * 2.5;
+                this.maxPopRadius = this.radius * 3;
             }
 
             draw() {
                 if (!this.popped) {
-                    // Рисуем пузырек
+                    // Рисуем неоновый пузырек с эффектом свечения
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-                    ctx.fillStyle = this.color;
+                    
+                    // Создаем градиент для внутреннего света
+                    const gradient = ctx.createRadialGradient(
+                        this.x, this.y, 1,
+                        this.x, this.y, this.radius
+                    );
+                    gradient.addColorStop(0, this.color);
+                    gradient.addColorStop(1, 'transparent');
+                    
+                    ctx.fillStyle = gradient;
                     ctx.fill();
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-                    ctx.lineWidth = 1.5;
+                    
+                    // Внешняя обводка
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = 2;
                     ctx.stroke();
+                    
+                    // Эффект свечения (необязательно, но усиливает неон)
+                    ctx.shadowColor = this.color;
+                    ctx.shadowBlur = 15;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    ctx.shadowBlur = 0; // Сбрасываем свечение
                 } else {
                     // Рисуем эффект лопания
                     if (this.popRadius < this.maxPopRadius) {
                         const alpha = 1 - (this.popRadius / this.maxPopRadius);
                         ctx.beginPath();
                         ctx.arc(this.x, this.y, this.popRadius, 0, Math.PI * 2, false);
-                        ctx.strokeStyle = `rgba(255, 110, 199, ${alpha})`; // Неоново-розовый
+                        ctx.strokeStyle = this.color;
                         ctx.lineWidth = 3;
+                        ctx.shadowColor = this.color;
+                        ctx.shadowBlur = 20;
+                        ctx.globalAlpha = alpha;
                         ctx.stroke();
+                        ctx.globalAlpha = 1; // Сброс
+                        ctx.shadowBlur = 0;
                     }
                 }
             }
@@ -101,24 +129,25 @@
 
                     // Проверка на столкновение с мышью
                     const distance = Math.hypot(mouse.x - this.x, mouse.y - this.y);
-                    if (distance < this.radius + 10) { // +10 для чувствительности
+                    if (distance < this.radius + 12) { // +12 для чувствительности
                         this.popped = true;
                     }
                 } else {
                     // Увеличиваем радиус при лопании
-                    this.popRadius += 2;
+                    this.popRadius += 3;
                 }
 
                 this.draw();
             }
         }
 
-        // Создание пузырьков
-        for (let i = 0; i < 100; i++) {
+        // Создание пузырьков (в 3 раза больше)
+        const bubbleCount = 300; // Было 100, стало 300
+        for (let i = 0; i < bubbleCount; i++) {
             bubbles.push(new Bubble());
         }
 
-        // Функция перезапуска лопнувших пузырьков через время
+        // Функция перезапуска лопнувших пузырьков
         function resetPoppedBubbles() {
             for (let i = 0; i < bubbles.length; i++) {
                 if (bubbles[i].popped && bubbles[i].popRadius >= bubbles[i].maxPopRadius) {
@@ -137,7 +166,7 @@
                 bubbles[i].update();
             }
 
-            resetPoppedBubbles(); // Проверяем и перезапускаем лопнувшие
+            resetPoppedBubbles();
         }
 
         animate();
