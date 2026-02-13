@@ -8,6 +8,7 @@
             margin: 0;
             overflow: hidden;
             background-color: #0a0a0a; /* Почти черный фон */
+            touch-action: none; /* Отключаем стандартные жесты для корректной работы на мобильных */
         }
         canvas {
             display: block;
@@ -15,7 +16,6 @@
     </style>
 </head>
 <body>
-    <!-- Убрана надпись сверху -->
     <canvas id="bubbles"></canvas>
 
     <script>
@@ -30,12 +30,36 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        const bubbles = [];
+        // Поддержка сенсорных устройств
         const mouse = { x: undefined, y: undefined };
 
+        // Обработчики для мыши
         canvas.addEventListener('mousemove', (e) => {
             mouse.x = e.clientX;
             mouse.y = e.clientY;
+        });
+        canvas.addEventListener('mouseleave', () => {
+            mouse.x = undefined;
+            mouse.y = undefined;
+        });
+
+        // Обработчики для сенсорных устройств
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault(); // Предотвращаем прокрутку при движении пальцем
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = e.touches[0].clientX - rect.left;
+            mouse.y = e.touches[0].clientY - rect.top;
+        }, { passive: false });
+
+        canvas.addEventListener('touchstart', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = e.touches[0].clientX - rect.left;
+            mouse.y = e.touches[0].clientY - rect.top;
+        });
+
+        canvas.addEventListener('touchend', () => {
+            mouse.x = undefined;
+            mouse.y = undefined;
         });
 
         // Класс пузырька
@@ -44,45 +68,53 @@
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
                 
-                // Обычный радиус: 6-24, увеличенный в 3 раза: 18-72
                 const baseRadius = Math.random() * 18 + 6;
                 this.radius = isLarge ? baseRadius * 3 : baseRadius;
                 
-                const neonColors = ['#ff00ff', '#cc00ff', '#39FF14']; 
+                // Добавлен ярко-малиновый цвет (#e75480)
+                const neonColors = ['#ff00ff', '#cc00ff', '#39FF14', '#e75480']; 
                 this.color = neonColors[Math.floor(Math.random() * neonColors.length)];
+                
                 this.dx = (Math.random() - 0.5) * 1.2;
                 this.dy = (Math.random() - 0.5) * 1.2;
                 this.popped = false;
                 this.popRadius = 0;
-                this.maxPopRadius = this.radius * 2.5; // Пропорционально увеличиваем радиус лопания
+                this.maxPopRadius = this.radius * 2.5;
             }
 
             draw() {
                 if (!this.popped) {
-                    // Рисуем неоновый пузырек с эффектом свечения
+                    // Рисуем пузырек с прозрачным центром и яркой оболочкой
+                    
+                    // Центральная прозрачная часть
                     ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-                    
-                    const gradient = ctx.createRadialGradient(
-                        this.x, this.y, 1,
-                        this.x, this.y, this.radius
-                    );
-                    gradient.addColorStop(0, this.color);
-                    gradient.addColorStop(1, 'transparent');
-                    
-                    ctx.fillStyle = gradient;
+                    ctx.arc(this.x, this.y, this.radius * 0.7, 0, Math.PI * 2, false);
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)'; // Очень прозрачный центр
                     ctx.fill();
                     
-                    ctx.strokeStyle = this.color;
-                    ctx.lineWidth = 2;
+                    // Яркая внешняя оболочка
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+                    
+                    // Градиент: прозрачный внутри, яркий снаружи
+                    const gradient = ctx.createRadialGradient(
+                        this.x, this.y, this.radius * 0.7, // начало оболочки
+                        this.x, this.y, this.radius       // конец оболочки
+                    );
+                    gradient.addColorStop(0, 'transparent');
+                    gradient.addColorStop(1, this.color);
+                    
+                    ctx.strokeStyle = gradient;
+                    ctx.lineWidth = this.radius * 0.3; // Толщина оболочки
                     ctx.stroke();
                     
-                    ctx.shadowColor = this.color;
-                    ctx.shadowBlur = 15;
+                    // Яркая кромка для четкости
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
                     ctx.strokeStyle = this.color;
-                    ctx.lineWidth = 1;
+                    ctx.lineWidth = 1.5;
+                    ctx.shadowColor = this.color;
+                    ctx.shadowBlur = 10;
                     ctx.stroke();
                     ctx.shadowBlur = 0;
                 } else {
@@ -114,9 +146,11 @@
                     this.x += this.dx;
                     this.y += this.dy;
 
-                    const distance = Math.hypot(mouse.x - this.x, mouse.y - this.y);
-                    if (distance < this.radius + 12) {
-                        this.popped = true;
+                    if (mouse.x !== undefined && mouse.y !== undefined) {
+                        const distance = Math.hypot(mouse.x - this.x, mouse.y - this.y);
+                        if (distance < this.radius + 12) {
+                            this.popped = true;
+                        }
                     }
                 } else {
                     this.popRadius += 3;
@@ -129,7 +163,7 @@
         // Создание пузырьков: 20% будут увеличенными
         const bubbleCount = 300;
         for (let i = 0; i < bubbleCount; i++) {
-            const isLarge = Math.random() < 0.2; // 20% шанс стать большим
+            const isLarge = Math.random() < 0.2;
             bubbles.push(new Bubble(isLarge));
         }
 
