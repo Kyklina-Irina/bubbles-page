@@ -6,12 +6,15 @@
     <style>
         body {
             margin: 0;
+            padding: 0;
             overflow: hidden;
             background-color: #0a0a0a; /* Почти черный фон */
             touch-action: none; /* Отключаем стандартные жесты для корректной работы на мобильных */
         }
         canvas {
             display: block;
+            width: 100%;
+            height: 100%;
         }
     </style>
 </head>
@@ -23,15 +26,17 @@
         const ctx = canvas.getContext('2d');
 
         function resizeCanvas() {
+            // Устанавливаем размеры холста в соответствии с размерами окна
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
         }
 
+        // Устанавливаем размер при загрузке и изменении размера окна
+        window.addEventListener('load', resizeCanvas);
         window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
 
         // Поддержка сенсорных устройств
-        const mouse = { x: undefined, y: undefined };
+        const mouse = { x: null, y: null };
 
         // Обработчики для мыши
         canvas.addEventListener('mousemove', (e) => {
@@ -39,8 +44,8 @@
             mouse.y = e.clientY;
         });
         canvas.addEventListener('mouseleave', () => {
-            mouse.x = undefined;
-            mouse.y = undefined;
+            mouse.x = null;
+            mouse.y = null;
         });
 
         // Обработчики для сенсорных устройств
@@ -58,8 +63,8 @@
         });
 
         canvas.addEventListener('touchend', () => {
-            mouse.x = undefined;
-            mouse.y = undefined;
+            mouse.x = null;
+            mouse.y = null;
         });
 
         // Класс пузырька
@@ -136,17 +141,28 @@
 
             update() {
                 if (!this.popped) {
-                    if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
-                        this.dx = -this.dx;
+                    // Движение пузырька
+                    if (this.x + this.radius > canvas.width) {
+                        this.x = canvas.width - this.radius;
+                        this.dx = -Math.abs(this.dx); // Убедиться, что движется влево
+                    } else if (this.x - this.radius < 0) {
+                        this.x = this.radius;
+                        this.dx = Math.abs(this.dx); // Убедиться, что движется вправо
                     }
-                    if (this.y + this.radius > canvas.height || this.y - this.radius < 0) {
-                        this.dy = -this.dy;
+
+                    if (this.y + this.radius > canvas.height) {
+                        this.y = canvas.height - this.radius;
+                        this.dy = -Math.abs(this.dy); // Убедиться, что движется вверх
+                    } else if (this.y - this.radius < 0) {
+                        this.y = this.radius;
+                        this.dy = Math.abs(this.dy); // Убедиться, что движется вниз
                     }
 
                     this.x += this.dx;
                     this.y += this.dy;
 
-                    if (mouse.x !== undefined && mouse.y !== undefined) {
+                    // Проверка на столкновение с мышью/пальцем
+                    if (mouse.x !== null && mouse.y !== null) {
                         const distance = Math.hypot(mouse.x - this.x, mouse.y - this.y);
                         if (distance < this.radius + 12) {
                             this.popped = true;
@@ -161,6 +177,7 @@
         }
 
         // Создание пузырьков: 20% будут увеличенными
+        const bubbles = [];
         const bubbleCount = 300;
         for (let i = 0; i < bubbleCount; i++) {
             const isLarge = Math.random() < 0.2;
@@ -176,18 +193,29 @@
             }
         }
 
+        // Анимационный цикл
         function animate() {
-            requestAnimationFrame(animate);
+            // Очищаем холст
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+            // Обновляем все пузыри
             for (let i = 0; i < bubbles.length; i++) {
                 bubbles[i].update();
             }
 
+            // Сбрасываем лопнувшие пузыри
             resetPoppedBubbles();
+
+            // Запрашиваем следующий кадр
+            requestAnimationFrame(animate);
         }
 
-        animate();
+        // Запускаем анимацию после полной загрузки
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', animate);
+        } else {
+            animate();
+        }
     </script>
 </body>
 </html>
