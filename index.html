@@ -2,12 +2,12 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Залипательная Страница</title>
+    <title>Лопающиеся Пузырьки</title>
     <style>
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #f0f0f0;
+            background-color: #1a001a; /* Темно-фиолетовый фон */
         }
         canvas {
             display: block;
@@ -18,21 +18,21 @@
             width: 100%;
             text-align: center;
             font-family: Arial, sans-serif;
-            color: #555;
+            color: #ff6ec7; /* Неоново-розовый текст */
             font-size: 18px;
-            pointer-events: none; /* чтобы не мешал кликам */
+            pointer-events: none;
+            text-shadow: 0 0 5px rgba(255, 110, 199, 0.7); /* Легкое свечение */
         }
     </style>
 </head>
 <body>
-    <div class="info">Двигайте мышью по экрану</div>
+    <div class="info">Наведите курсор на пузырек, чтобы он лопнул</div>
     <canvas id="bubbles"></canvas>
 
     <script>
         const canvas = document.getElementById('bubbles');
         const ctx = canvas.getContext('2d');
 
-        // Установка размеров холста
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -41,62 +41,91 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // Массив пузырей
         const bubbles = [];
-        const mouse = { x: canvas.width / 2, y: canvas.height / 2 };
-        const maxRadius = 40;
+        const mouse = { x: undefined, y: undefined };
 
-        // Обновление позиции мыши
         canvas.addEventListener('mousemove', (e) => {
             mouse.x = e.clientX;
             mouse.y = e.clientY;
         });
 
-        // Класс пузыря
+        // Класс пузырька
         class Bubble {
             constructor() {
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
-                this.radius = Math.random() * 10 + 5;
-                this.minRadius = this.radius;
-                this.color = `hsl(${Math.random() * 360}, 70%, 70%)`;
-                this.dx = (Math.random() - 0.5) * 2;
-                this.dy = (Math.random() - 0.5) * 2;
+                this.radius = Math.random() * 15 + 5;
+                this.color = `hsla(${Math.random() * 360}, 100%, 75%, 0.7)`; // Яркие цвета с прозрачностью
+                this.dx = (Math.random() - 0.5) * 1.5;
+                this.dy = (Math.random() - 0.5) * 1.5;
+                this.popped = false; // Состояние "лопнул"
+                this.popRadius = 0;
+                this.maxPopRadius = this.radius * 2.5;
             }
 
             draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-                ctx.fillStyle = this.color;
-                ctx.fill();
+                if (!this.popped) {
+                    // Рисуем пузырек
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+                    ctx.fillStyle = this.color;
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                } else {
+                    // Рисуем эффект лопания
+                    if (this.popRadius < this.maxPopRadius) {
+                        const alpha = 1 - (this.popRadius / this.maxPopRadius);
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.popRadius, 0, Math.PI * 2, false);
+                        ctx.strokeStyle = `rgba(255, 110, 199, ${alpha})`; // Неоново-розовый
+                        ctx.lineWidth = 3;
+                        ctx.stroke();
+                    }
+                }
             }
 
             update() {
-                if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
-                    this.dx = -this.dx;
-                }
-                if (this.y + this.radius > canvas.height || this.y - this.radius < 0) {
-                    this.dy = -this.dy;
-                }
+                if (!this.popped) {
+                    // Движение пузырька
+                    if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
+                        this.dx = -this.dx;
+                    }
+                    if (this.y + this.radius > canvas.height || this.y - this.radius < 0) {
+                        this.dy = -this.dy;
+                    }
 
-                this.x += this.dx;
-                this.y += this.dy;
+                    this.x += this.dx;
+                    this.y += this.dy;
 
-                // Реакция на мышь
-                const distance = Math.hypot(mouse.x - this.x, mouse.y - this.y);
-                if (distance < 100 && this.radius < maxRadius) {
-                    this.radius += 1;
-                } else if (this.radius > this.minRadius) {
-                    this.radius -= 0.5;
+                    // Проверка на столкновение с мышью
+                    const distance = Math.hypot(mouse.x - this.x, mouse.y - this.y);
+                    if (distance < this.radius + 10) { // +10 для чувствительности
+                        this.popped = true;
+                    }
+                } else {
+                    // Увеличиваем радиус при лопании
+                    this.popRadius += 2;
                 }
 
                 this.draw();
             }
         }
 
-        // Создание пузырей
-        for (let i = 0; i < 150; i++) {
+        // Создание пузырьков
+        for (let i = 0; i < 100; i++) {
             bubbles.push(new Bubble());
+        }
+
+        // Функция перезапуска лопнувших пузырьков через время
+        function resetPoppedBubbles() {
+            for (let i = 0; i < bubbles.length; i++) {
+                if (bubbles[i].popped && bubbles[i].popRadius >= bubbles[i].maxPopRadius) {
+                    // Возвращаем пузырек в начальное состояние
+                    bubbles[i] = new Bubble();
+                }
+            }
         }
 
         // Анимация
@@ -107,6 +136,8 @@
             for (let i = 0; i < bubbles.length; i++) {
                 bubbles[i].update();
             }
+
+            resetPoppedBubbles(); // Проверяем и перезапускаем лопнувшие
         }
 
         animate();
