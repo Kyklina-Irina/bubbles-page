@@ -2,19 +2,19 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Мобильные Неоновые Пузырьки</title>
+    <title>Неоновые Пузырьки — Мобильная Версия</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
     <style>
+        * { margin: 0; padding: 0; }
         body {
-            margin: 0;
-            padding: 0;
             overflow: hidden;
-            background-color: #0a0a0a; /* Почти черный фон */
-            touch-action: manipulation; /* Улучшает восприятие жестов */
+            background: #0a0a0a;
+            touch-action: manipulation;
         }
         canvas {
             display: block;
-            width: 100vw; /* Полная ширина окна */
-            height: 100vh; /* Полная высота окна */
+            width: 100vw;
+            height: 100vh;
         }
     </style>
 </head>
@@ -22,63 +22,42 @@
     <canvas id="bubbles"></canvas>
 
     <script>
+        // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
         const canvas = document.getElementById('bubbles');
         const ctx = canvas.getContext('2d');
+        let mouse = { x: null, y: null };
+        let bubbles = []; // Объявляем ДО создания пузырей
 
-        // Устанавливаем размеры холста при загрузке и изменении размера
+        // --- ФУНКЦИЯ ИНИЦИАЛИЗАЦИИ ---
+        function init() {
+            resizeCanvas();
+            createBubbles(300);
+            setupEventListeners();
+            startAnimation();
+        }
+
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
         }
-        window.addEventListener('load', resizeCanvas);
-        window.addEventListener('resize', resizeCanvas);
 
-        // Объект для отслеживания позиции мыши или касания
-        const mouse = { x: null, y: null };
+        function createBubbles(count) {
+            bubbles = [];
+            for (let i = 0; i < count; i++) {
+                const isLarge = Math.random() < 0.2;
+                bubbles.push(new Bubble(isLarge));
+            }
+        }
 
-        // --- Обработчики для мыши ---
-        canvas.addEventListener('mousemove', (e) => {
-            mouse.x = e.clientX;
-            mouse.y = e.clientY;
-        });
-        canvas.addEventListener('mouseleave', () => {
-            mouse.x = null;
-            mouse.y = null;
-        });
-
-        // --- Обработчики для сенсорных устройств ---
-        // Используем capture phase для лучшего перехвата событий
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault(); // Предотвращает прокрутку и масштабирование
-            const rect = canvas.getBoundingClientRect();
-            mouse.x = e.touches[0].clientX - rect.left;
-            mouse.y = e.touches[0].clientY - rect.top;
-        }, { passive: false }); // Указываем, что preventDefault используется
-
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            const rect = canvas.getBoundingClientRect();
-            mouse.x = e.touches[0].clientX - rect.left;
-            mouse.y = e.touches[0].clientY - rect.top;
-        }, { passive: false });
-
-        canvas.addEventListener('touchend', () => {
-            mouse.x = null;
-            mouse.y = null;
-        });
-
-        // Класс пузырька
         class Bubble {
             constructor(isLarge = false) {
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
-
                 const baseRadius = Math.random() * 18 + 6;
                 this.radius = isLarge ? baseRadius * 3 : baseRadius;
 
-                // Добавлен ярко-малиновый цвет
-                const neonColors = ['#ff00ff', '#cc00ff', '#39FF14', '#e75480'];
-                this.color = neonColors[Math.floor(Math.random() * neonColors.length)];
+                const colors = ['#ff00ff', '#cc00ff', '#39FF14', '#e75480'];
+                this.color = colors[Math.floor(Math.random() * colors.length)];
 
                 this.dx = (Math.random() - 0.5) * 1.2;
                 this.dy = (Math.random() - 0.5) * 1.2;
@@ -92,23 +71,23 @@
                     // Прозрачный центр
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, this.radius * 0.7, 0, Math.PI * 2, false);
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                    ctx.fillStyle = 'rgba(0,0,0,0.1)';
                     ctx.fill();
 
                     // Яркая оболочка
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-                    const gradient = ctx.createRadialGradient(
+                    const g = ctx.createRadialGradient(
                         this.x, this.y, this.radius * 0.7,
                         this.x, this.y, this.radius
                     );
-                    gradient.addColorStop(0, 'transparent');
-                    gradient.addColorStop(1, this.color);
-                    ctx.strokeStyle = gradient;
+                    g.addColorStop(0, 'transparent');
+                    g.addColorStop(1, this.color);
+                    ctx.strokeStyle = g;
                     ctx.lineWidth = this.radius * 0.3;
                     ctx.stroke();
 
-                    // Яркая кромка
+                    // Четкая кромка
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
                     ctx.strokeStyle = this.color;
@@ -119,14 +98,14 @@
                     ctx.shadowBlur = 0;
                 } else {
                     if (this.popRadius < this.maxPopRadius) {
-                        const alpha = 1 - (this.popRadius / this.maxPopRadius);
+                        const a = 1 - (this.popRadius / this.maxPopRadius);
                         ctx.beginPath();
                         ctx.arc(this.x, this.y, this.popRadius, 0, Math.PI * 2, false);
                         ctx.strokeStyle = this.color;
                         ctx.lineWidth = 3;
                         ctx.shadowColor = this.color;
                         ctx.shadowBlur = 20;
-                        ctx.globalAlpha = alpha;
+                        ctx.globalAlpha = a;
                         ctx.stroke();
                         ctx.globalAlpha = 1;
                         ctx.shadowBlur = 0;
@@ -136,33 +115,31 @@
 
             update() {
                 if (!this.popped) {
-                    // Обновление позиции
                     this.x += this.dx;
                     this.y += this.dy;
 
-                    // Проверка границ (осторожнее с проверкой на ноль)
+                    // Отскок от границ
                     if (this.x + this.radius > canvas.width) {
                         this.x = canvas.width - this.radius;
-                        this.dx *= -1;
+                        this.dx = -Math.abs(this.dx);
                     } else if (this.x - this.radius < 0) {
                         this.x = this.radius;
-                        this.dx *= -1;
+                        this.dx = Math.abs(this.dx);
                     }
                     if (this.y + this.radius > canvas.height) {
                         this.y = canvas.height - this.radius;
-                        this.dy *= -1;
+                        this.dy = -Math.abs(this.dy);
                     } else if (this.y - this.radius < 0) {
                         this.y = this.radius;
-                        this.dy *= -1;
+                        this.dy = Math.abs(this.dy);
                     }
 
-                    // Проверка на столкновение с мышью/пальцем
+                    // Проверка касания
                     if (mouse.x !== null && mouse.y !== null) {
                         const dx = mouse.x - this.x;
                         const dy = mouse.y - this.y;
-                        const distance = Math.sqrt(dx * dx + dy * dy); // Math.hypot может быть медленнее
-
-                        if (distance < this.radius + 12) {
+                        const d = Math.sqrt(dx*dx + dy*dy);
+                        if (d < this.radius + 12) {
                             this.popped = true;
                         }
                     }
@@ -173,49 +150,76 @@
             }
         }
 
-        // Создание пузырьков
-        const bubbles = [];
-        const bubbleCount = 300;
-        for (let i = 0; i < bubbleCount; i++) {
-            const isLarge = Math.random() < 0.2;
-            bubbles.push(new Bubble(isLarge));
+        function setupEventListeners() {
+            // Mouse
+            canvas.addEventListener('mousemove', e => {
+                mouse.x = e.clientX;
+                mouse.y = e.clientY;
+            });
+            canvas.addEventListener('mouseleave', () => {
+                mouse.x = null;
+                mouse.y = null;
+            });
+
+            // Touch
+            canvas.addEventListener('touchmove', e => {
+                e.preventDefault();
+                const r = canvas.getBoundingClientRect();
+                mouse.x = e.touches[0].clientX - r.left;
+                mouse.y = e.touches[0].clientY - r.top;
+            }, { passive: false });
+
+            canvas.addEventListener('touchstart', e => {
+                e.preventDefault();
+                const r = canvas.getBoundingClientRect();
+                mouse.x = e.touches[0].clientX - r.left;
+                mouse.y = e.touches[0].clientY - r.top;
+            }, { passive: false });
+
+            canvas.addEventListener('touchend', () => {
+                mouse.x = null;
+                mouse.y = null;
+            });
         }
 
-        // Функция сброса лопнувших пузырей
-        function resetPoppedBubbles() {
-            for (let i = 0; i < bubbles.length; i++) {
-                if (bubbles[i].popped && bubbles[i].popRadius >= bubbles[i].maxPopRadius) {
-                    const isLarge = Math.random() < 0.2;
-                    bubbles[i] = new Bubble(isLarge);
-                }
-            }
-        }
-
-        // --- Основной игровой цикл ---
+        // --- АНИМАЦИОННЫЙ ЦИКЛ ---
         let lastTime = 0;
-        const targetFPS = 60;
-        const frameInterval = 1000 / targetFPS;
+        const FPS = 60;
+        const FRAME_TIME = 1000 / FPS;
 
-        function gameLoop(currentTime) {
-            // Ограничиваем FPS
-            if (currentTime - lastTime >= frameInterval) {
+        function gameLoop(timestamp) {
+            if (timestamp - lastTime >= FRAME_TIME) {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                for (let i = 0; i < bubbles.length; i++) {
-                    bubbles[i].update();
+                for (let b of bubbles) {
+                    b.update();
                 }
 
-                resetPoppedBubbles();
+                // Сброс лопнувших
+                for (let i = bubbles.length - 1; i >= 0; i--) {
+                    if (bubbles[i].popped && bubbles[i].popRadius >= bubbles[i].maxPopRadius) {
+                        const isLarge = Math.random() < 0.2;
+                        bubbles[i] = new Bubble(isLarge);
+                    }
+                }
 
-                lastTime = currentTime;
+                lastTime = timestamp;
             }
-            // requestAnimationFrame вместо setTimeout для лучшей производительности
             requestAnimationFrame(gameLoop);
         }
 
-        // Запуск цикла анимации
-        requestAnimationFrame(gameLoop);
+        function startAnimation() {
+            // Убедимся, что холст и массив готовы
+            if (canvas.width === 0 || bubbles.length === 0) {
+                setTimeout(startAnimation, 100);
+                return;
+            }
+            requestAnimationFrame(gameLoop);
+        }
 
+        // --- ЗАПУСК ---
+        window.addEventListener('load', init);
+        window.addEventListener('resize', resizeCanvas);
     </script>
 </body>
 </html>
